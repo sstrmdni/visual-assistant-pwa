@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101412">
+  <meta name="description" content="Visual Assistant untuk deteksi objek real-time dengan suara Bahasa Indonesia.">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Visual Assistant</title>
+</head>
+<body>
+  <main id="app" class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">VA</span>
+        <div>
+          <h1>Visual Assistant</h1>
+          <p id="connectionHint">Menyiapkan aplikasi...</p>
+        </div>
+      </div>
+
+      <div class="status-cluster" aria-live="polite">
+        <span id="statusPill" class="status-pill status-pill--idle">Siap</span>
+        <span id="fpsText" class="metric-pill">FPS 0</span>
+      </div>
+    </header>
+
+    <section class="workspace" aria-label="Area deteksi">
+      <section class="camera-stage" aria-label="Kamera">
+        <video id="videoStream" playsinline autoplay muted></video>
+        <canvas id="canvas" aria-hidden="true"></canvas>
+
+        <div id="cameraPlaceholder" class="camera-placeholder">
+          <div class="lens-ring" aria-hidden="true"></div>
+          <h2>Kamera belum aktif</h2>
+          <p id="statusText">Memuat model deteksi...</p>
+        </div>
+
+        <div id="loading" class="loading-overlay" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <span id="loadingText">Memproses...</span>
+        </div>
+
+        <div class="stage-footer">
+          <span id="lastAnnouncement">Aplikasi siap</span>
+        </div>
+      </section>
+
+      <aside class="insight-panel" aria-label="Panel deteksi">
+        <div class="panel-section panel-section--summary">
+          <span class="section-kicker">Suara</span>
+          <div class="voice-row">
+            <strong id="voiceStatus">Memeriksa Piper...</strong>
+            <span id="soundState">Aktif</span>
+          </div>
+        </div>
+
+        <div class="panel-section panel-section--detections">
+          <div class="section-heading">
+            <span class="section-kicker">Objek</span>
+            <strong id="objectCount">0 terdeteksi</strong>
+          </div>
+          <div id="detectionList" class="detection-list">
+            <p class="empty-text">Mulai deteksi untuk melihat objek.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <nav class="controls" aria-label="Kontrol aplikasi">
+      <button id="startBtn" class="btn btn-primary" type="button">Mulai</button>
+      <button id="stopBtn" class="btn btn-danger" type="button" disabled>Stop</button>
+      <button id="switchCameraBtn" class="btn btn-secondary" type="button">Kamera</button>
+      <button id="toggleSound" class="btn btn-secondary" type="button">Suara</button>
+      <button id="testSoundBtn" class="btn btn-secondary" type="button">Tes</button>
+      <button id="installBtn" class="btn btn-ghost" type="button" hidden>Install</button>
+    </nav>
+
+    <audio id="ttsPlayer" preload="none"></audio>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
