@@ -8,6 +8,5 @@
         "maxLambdaSize": "50mb"
       }
     }
-  ],
-  "env": {}
+  ]
 }
