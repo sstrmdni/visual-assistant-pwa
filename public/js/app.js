@@ -34,6 +34,7 @@ class VisualAssistant {
     this.facingMode = localStorage.getItem('visualAssistantCamera') || 'environment';
     this.ttsAvailable = false;
     this.ttsBackend = 'browser';
+    this.browserVoiceLang = 'id-ID';
     this.speechBusy = false;
     this.pendingSpeech = '';
     this.currentAudioUrl = '';
@@ -210,7 +211,10 @@ class VisualAssistant {
     this.setupInstallPrompt();
 
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {};
+      window.speechSynthesis.onvoiceschanged = () => {
+        this.checkBrowserVoices();
+        this.updateVoiceStatus();
+      };
     }
 
     const [modelResult] = await Promise.allSettled([
@@ -262,13 +266,50 @@ class VisualAssistant {
 
       this.ttsAvailable = Boolean(data.available);
       this.ttsBackend = this.ttsAvailable ? 'piper' : 'browser';
+      this.checkBrowserVoices();
       this.updateVoiceStatus();
     } catch (error) {
       console.warn('TTS health check failed:', error);
       this.ttsAvailable = false;
       this.ttsBackend = 'browser';
+      this.checkBrowserVoices();
       this.updateVoiceStatus();
     }
+  }
+
+  checkBrowserVoices() {
+    if (!('speechSynthesis' in window)) {
+      this.browserVoiceLang = null;
+      return;
+    }
+
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Cek suara Indonesia
+    const indonesianVoice = voices.find((voice) => {
+      const haystack = `${voice.lang} ${voice.name}`.toLowerCase();
+      return haystack.includes('id') || haystack.includes('indonesia') || haystack.includes('bahasa');
+    });
+    
+    if (indonesianVoice) {
+      this.browserVoiceLang = 'id-ID';
+      return;
+    }
+    
+    // Fallback ke English jika Indonesia tidak ada
+    const englishVoice = voices.find((voice) => voice.lang.startsWith('en'));
+    if (englishVoice) {
+      this.browserVoiceLang = 'en-US';
+      return;
+    }
+    
+    // Gunakan voice pertama yang tersedia
+    if (voices.length > 0) {
+      this.browserVoiceLang = voices[0].lang;
+      return;
+    }
+    
+    this.browserVoiceLang = null;
   }
 
   updateConnectionHint() {
@@ -287,7 +328,18 @@ class VisualAssistant {
       return;
     }
 
-    this.voiceStatus.textContent = 'Fallback browser';
+    let voiceText = 'Browser TTS';
+    if (this.browserVoiceLang === 'id-ID') {
+      voiceText = 'Browser Indonesian';
+    } else if (this.browserVoiceLang === 'en-US') {
+      voiceText = 'Browser English';
+    } else if (this.browserVoiceLang) {
+      voiceText = `Browser ${this.browserVoiceLang}`;
+    } else {
+      voiceText = 'No voice available';
+    }
+    
+    this.voiceStatus.textContent = voiceText;
   }
 
   async start() {
@@ -826,19 +878,36 @@ class VisualAssistant {
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'id-ID';
+      utterance.lang = this.browserVoiceLang || 'id-ID';
       utterance.rate = 0.92;
       utterance.pitch = 1;
       utterance.volume = 1;
 
       const voices = window.speechSynthesis.getVoices();
-      const indonesianVoice = voices.find((voice) => {
-        const haystack = `${voice.lang} ${voice.name}`.toLowerCase();
-        return haystack.includes('id') || haystack.includes('indonesia') || haystack.includes('bahasa');
-      });
-
-      if (indonesianVoice) {
-        utterance.voice = indonesianVoice;
+      
+      let selectedVoice = null;
+      
+      // Cari suara sesuai bahasa yang terdeteksi
+      if (this.browserVoiceLang === 'id-ID') {
+        // Cari Indonesian voice
+        selectedVoice = voices.find((voice) => {
+          const haystack = `${voice.lang} ${voice.name}`.toLowerCase();
+          return haystack.includes('id') || haystack.includes('indonesia') || haystack.includes('bahasa');
+        });
+      } else if (this.browserVoiceLang === 'en-US') {
+        // Cari English voice
+        selectedVoice = voices.find((voice) => voice.lang.startsWith('en'));
+      } else if (this.browserVoiceLang) {
+        // Cari voice sesuai bahasa yang tersedia
+        selectedVoice = voices.find((voice) => voice.lang === this.browserVoiceLang);
+      }
+      
+      if (!selectedVoice && voices.length > 0) {
+        selectedVoice = voices[0];
+      }
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
       }
 
       utterance.onend = () => resolve();
